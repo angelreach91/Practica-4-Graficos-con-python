@@ -10,41 +10,51 @@ temperatura = pd.read_csv(ruta + r"\temperatura.csv")
 humedad = pd.read_csv(ruta + r"\humedad.csv")
 viento = pd.read_csv(ruta + r"\viento.csv")
 
-# Ajustar tiempo
-intervalo = 5  # segundos
-fs = 1 / intervalo  # 0.2 Hz
+# Tiempo y frecuencia de muestreo
+intervalo = 5
+fs = 1 / intervalo
+
 temperatura["Tiempo"] = temperatura.index * intervalo
 humedad["Tiempo"] = humedad.index * intervalo
 viento["Tiempo"] = viento.index * intervalo
 
-# --- Filtro pasa bandas ---
+# Función para filtro pasa bandas
 def filtro_pasa_bandas(senal, f_low=0.01, f_high=0.09, orden=2):
     b, a = butter(orden, [f_low, f_high], btype='band')
     return filtfilt(b, a, senal)
 
-# Aplicar filtro
+# Aplicar filtro a cada sensor
 temperatura["Pasa_Bandas"] = filtro_pasa_bandas(temperatura["Temperatura_C"])
 humedad["Pasa_Bandas"] = filtro_pasa_bandas(humedad["Humedad_Relativa_%"])
 viento["Pasa_Bandas"] = filtro_pasa_bandas(viento["Velocidad_Viento_mps"])
 
-# --- Gráfica original vs pasa bandas ---
-def graficar_pasa_bandas(df, columna, nombre_sensor, unidad):
-    plt.figure(figsize=(10, 4))
-    plt.plot(df["Tiempo"], df[columna], label="Original", alpha=0.6)
-    plt.plot(df["Tiempo"], df["Pasa_Bandas"], label="Pasa Bandas (0.01–0.09)", linewidth=2)
-    plt.title(f"{nombre_sensor} - Filtro Pasa Bandas")
-    plt.xlabel("Tiempo (s)")
-    plt.ylabel(unidad)
-    plt.grid(True)
-    plt.legend()
-    plt.tight_layout()
-    plt.show()
+# Crear figura con subgráficas
+fig, axs = plt.subplots(3, 1, figsize=(12, 10), sharex=True)
 
 # Temperatura
-graficar_pasa_bandas(temperatura, "Temperatura_C", "Temperatura", "°C")
+axs[0].plot(temperatura["Tiempo"], temperatura["Temperatura_C"], label="Original", alpha=0.6)
+axs[0].plot(temperatura["Tiempo"], temperatura["Pasa_Bandas"], label="Pasa Bandas (0.01–0.09)", color='green', linestyle=':')
+axs[0].set_title("Temperatura")
+axs[0].set_ylabel("°C")
+axs[0].legend()
+axs[0].grid(True)
 
 # Humedad
-graficar_pasa_bandas(humedad, "Humedad_Relativa_%", "Humedad", "% HR")
+axs[1].plot(humedad["Tiempo"], humedad["Humedad_Relativa_%"], label="Original", alpha=0.6)
+axs[1].plot(humedad["Tiempo"], humedad["Pasa_Bandas"], label="Pasa Bandas (0.01–0.09)", color='green', linestyle=':')
+axs[1].set_title("Humedad")
+axs[1].set_ylabel("% HR")
+axs[1].legend()
+axs[1].grid(True)
 
 # Viento
-graficar_pasa_bandas(viento, "Velocidad_Viento_mps", "Viento", "m/s")
+axs[2].plot(viento["Tiempo"], viento["Velocidad_Viento_mps"], label="Original", alpha=0.6)
+axs[2].plot(viento["Tiempo"], viento["Pasa_Bandas"], label="Pasa Bandas (0.01–0.09)", color='green', linestyle=':')
+axs[2].set_title("Viento")
+axs[2].set_xlabel("Tiempo (s)")
+axs[2].set_ylabel("m/s")
+axs[2].legend()
+axs[2].grid(True)
+
+plt.tight_layout()
+plt.show()
