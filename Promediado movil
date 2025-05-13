@@ -4,41 +4,49 @@ import matplotlib.pyplot as plt
 # Ruta base
 ruta = r"C:\Users\Angel\Downloads"
 
-# Cargar los datos
+# Cargar datos
 temperatura = pd.read_csv(ruta + r"\temperatura.csv")
 humedad = pd.read_csv(ruta + r"\humedad.csv")
 viento = pd.read_csv(ruta + r"\viento.csv")
 
-# Ajustar tiempo
-intervalo = 5  # segundos por muestra
+# Tiempo (1 dato cada 5 s)
+intervalo = 5
 temperatura["Tiempo"] = temperatura.index * intervalo
 humedad["Tiempo"] = humedad.index * intervalo
 viento["Tiempo"] = viento.index * intervalo
 
-# --- Promediado móvil con ventana de 3 ---
+# Promediado móvil
 temperatura["Promedio"] = temperatura["Temperatura_C"].rolling(window=3, center=True).mean()
 humedad["Promedio"] = humedad["Humedad_Relativa_%"].rolling(window=3, center=True).mean()
 viento["Promedio"] = viento["Velocidad_Viento_mps"].rolling(window=3, center=True).mean()
 
-# --- Graficar comparativas ---
-
-def graficar_promediado(df, columna, nombre_sensor, unidad):
-    plt.figure(figsize=(10, 4))
-    plt.plot(df["Tiempo"], df[columna], label="Original", alpha=0.6)
-    plt.plot(df["Tiempo"], df["Promedio"], label="Promedio Móvil (ventana=3)", linewidth=2)
-    plt.title(f"{nombre_sensor} - Original vs Promediado")
-    plt.xlabel("Tiempo (s)")
-    plt.ylabel(unidad)
-    plt.grid(True)
-    plt.legend()
-    plt.tight_layout()
-    plt.show()
+# Crear figura con 3 subgráficas (una por sensor)
+fig, axs = plt.subplots(3, 1, figsize=(12, 10), sharex=True)
 
 # Temperatura
-graficar_promediado(temperatura, "Temperatura_C", "Temperatura", "°C")
+axs[0].plot(temperatura["Tiempo"], temperatura["Temperatura_C"], label="Original", alpha=0.6)
+axs[0].plot(temperatura["Tiempo"], temperatura["Promedio"], label="Promediado", color='black', linestyle='--')
+axs[0].set_title("Temperatura")
+axs[0].set_ylabel("°C")
+axs[0].legend()
+axs[0].grid(True)
 
 # Humedad
-graficar_promediado(humedad, "Humedad_Relativa_%", "Humedad", "% HR")
+axs[1].plot(humedad["Tiempo"], humedad["Humedad_Relativa_%"], label="Original", alpha=0.6)
+axs[1].plot(humedad["Tiempo"], humedad["Promedio"], label="Promediado", color='black', linestyle='--')
+axs[1].set_title("Humedad")
+axs[1].set_ylabel("% HR")
+axs[1].legend()
+axs[1].grid(True)
 
 # Viento
-graficar_promediado(viento, "Velocidad_Viento_mps", "Viento", "m/s")
+axs[2].plot(viento["Tiempo"], viento["Velocidad_Viento_mps"], label="Original", alpha=0.6)
+axs[2].plot(viento["Tiempo"], viento["Promedio"], label="Promediado", color='black', linestyle='--')
+axs[2].set_title("Viento")
+axs[2].set_xlabel("Tiempo (s)")
+axs[2].set_ylabel("m/s")
+axs[2].legend()
+axs[2].grid(True)
+
+plt.tight_layout()
+plt.show()
