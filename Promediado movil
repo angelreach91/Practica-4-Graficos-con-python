@@ -1,0 +1,44 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# Ruta base
+ruta = r"C:\Users\Angel\Downloads"
+
+# Cargar los datos
+temperatura = pd.read_csv(ruta + r"\temperatura.csv")
+humedad = pd.read_csv(ruta + r"\humedad.csv")
+viento = pd.read_csv(ruta + r"\viento.csv")
+
+# Ajustar tiempo
+intervalo = 5  # segundos por muestra
+temperatura["Tiempo"] = temperatura.index * intervalo
+humedad["Tiempo"] = humedad.index * intervalo
+viento["Tiempo"] = viento.index * intervalo
+
+# --- Promediado móvil con ventana de 3 ---
+temperatura["Promedio"] = temperatura["Temperatura_C"].rolling(window=3, center=True).mean()
+humedad["Promedio"] = humedad["Humedad_Relativa_%"].rolling(window=3, center=True).mean()
+viento["Promedio"] = viento["Velocidad_Viento_mps"].rolling(window=3, center=True).mean()
+
+# --- Graficar comparativas ---
+
+def graficar_promediado(df, columna, nombre_sensor, unidad):
+    plt.figure(figsize=(10, 4))
+    plt.plot(df["Tiempo"], df[columna], label="Original", alpha=0.6)
+    plt.plot(df["Tiempo"], df["Promedio"], label="Promedio Móvil (ventana=3)", linewidth=2)
+    plt.title(f"{nombre_sensor} - Original vs Promediado")
+    plt.xlabel("Tiempo (s)")
+    plt.ylabel(unidad)
+    plt.grid(True)
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
+# Temperatura
+graficar_promediado(temperatura, "Temperatura_C", "Temperatura", "°C")
+
+# Humedad
+graficar_promediado(humedad, "Humedad_Relativa_%", "Humedad", "% HR")
+
+# Viento
+graficar_promediado(viento, "Velocidad_Viento_mps", "Viento", "m/s")
