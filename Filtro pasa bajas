@@ -1,0 +1,51 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+from scipy.signal import butter, filtfilt
+
+# Ruta base
+ruta = r"C:\Users\Angel\Downloads"
+
+# Cargar los datos
+temperatura = pd.read_csv(ruta + r"\temperatura.csv")
+humedad = pd.read_csv(ruta + r"\humedad.csv")
+viento = pd.read_csv(ruta + r"\viento.csv")
+
+# Ajustar tiempo
+intervalo = 5  # segundos
+fs = 1 / intervalo  # frecuencia de muestreo = 0.2 Hz
+temperatura["Tiempo"] = temperatura.index * intervalo
+humedad["Tiempo"] = humedad.index * intervalo
+viento["Tiempo"] = viento.index * intervalo
+
+# --- Definir filtro pasa bajas ---
+def filtro_pasa_bajas(senal, fc=0.06, orden=2):
+    b, a = butter(orden, fc, btype='low')  # fc ya está normalizada (0 a 1)
+    return filtfilt(b, a, senal)
+
+# Aplicar filtro
+temperatura["Pasa_Bajas"] = filtro_pasa_bajas(temperatura["Temperatura_C"])
+humedad["Pasa_Bajas"] = filtro_pasa_bajas(humedad["Humedad_Relativa_%"])
+viento["Pasa_Bajas"] = filtro_pasa_bajas(viento["Velocidad_Viento_mps"])
+
+# --- Gráfica original vs filtrada ---
+
+def graficar_pasa_bajas(df, columna, nombre_sensor, unidad):
+    plt.figure(figsize=(10, 4))
+    plt.plot(df["Tiempo"], df[columna], label="Original", alpha=0.6)
+    plt.plot(df["Tiempo"], df["Pasa_Bajas"], label="Pasa Bajas (fc=0.06)", linewidth=2)
+    plt.title(f"{nombre_sensor} - Filtro Pasa Bajas")
+    plt.xlabel("Tiempo (s)")
+    plt.ylabel(unidad)
+    plt.grid(True)
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
+# Temperatura
+graficar_pasa_bajas(temperatura, "Temperatura_C", "Temperatura", "°C")
+
+# Humedad
+graficar_pasa_bajas(humedad, "Humedad_Relativa_%", "Humedad", "% HR")
+
+# Viento
+graficar_pasa_bajas(viento, "Velocidad_Viento_mps", "Viento", "m/s")
