@@ -1,7 +1,6 @@
-# Este script realiza el análisis completo de las señales de 3 sensores:
-# Temperatura, Humedad y Viento.
-# Incluye: promediado móvil, filtro pasa bajas, filtro pasa bandas y análisis de frecuencia (FFT),
-# todo presentado en una figura por etapa, con 3 subgráficas (una por sensor) para comparar visualmente los resultados.
+# Actividad final de análisis de señales de sensores
+# Incluye promediado, filtrado (pasa bajas y pasa bandas) y análisis de frecuencia (FFT)
+# Todo se presenta por sensor en una sola figura con dos subgráficas: tiempo y frecuencia
 
 import pandas as pd
 import numpy as np
@@ -9,147 +8,94 @@ import matplotlib.pyplot as plt
 from scipy.signal import butter, filtfilt
 from scipy.fft import fft, fftfreq
 
-# Ruta base donde están los CSV descargados
-ruta = r"C:\Users\Angel\Downloads"
+# ----------- Cargar archivos desde carpeta Descargas -----------
 
-# Cargar los datos de cada sensor
-temperatura = pd.read_csv(ruta + r"\temperatura.csv")
-humedad = pd.read_csv(ruta + r"\humedad.csv")
-viento = pd.read_csv(ruta + r"\viento.csv")
+ruta = r"C:\Users\Angel\Downloads"  # Ruta donde están los archivos .csv
 
-# Configurar tiempo: cada dato fue tomado cada 5 segundos
-intervalo = 5  # segundos entre muestras
-fs = 1 / intervalo  # frecuencia de muestreo = 0.2 Hz
+# Cargamos los tres sensores: temperatura, humedad y viento
+temp = pd.read_csv(ruta + r"\temperatura.csv")
+hum = pd.read_csv(ruta + r"\humedad.csv")
+vien = pd.read_csv(ruta + r"\viento.csv")
 
-# Agregamos una columna de tiempo a cada dataframe
-temperatura["Tiempo"] = temperatura.index * intervalo
-humedad["Tiempo"] = humedad.index * intervalo
-viento["Tiempo"] = viento.index * intervalo
+# ----------- Parámetros de adquisición -----------
 
-# =======================
-# Paso 1: Promediado Móvil
-# =======================
+intervalo = 5          # Cada muestra fue tomada cada 5 segundos
+fs = 1 / intervalo     # Frecuencia de muestreo = 0.2 Hz
 
-# Aplicamos promedio móvil con ventana de 3 (suaviza la señal)
-temperatura["Promedio"] = temperatura["Temperatura_C"].rolling(window=3, center=True).mean()
-humedad["Promedio"] = humedad["Humedad_Relativa_%"].rolling(window=3, center=True).mean()
-viento["Promedio"] = viento["Velocidad_Viento_mps"].rolling(window=3, center=True).mean()
+# Agregamos una columna de tiempo para graficar en el eje X
+for df in [temp, hum, vien]:
+    df["Tiempo"] = df.index * intervalo
 
-# Gráfica comparativa de promediado
-fig, axs = plt.subplots(3, 1, figsize=(12, 10), sharex=True)
-axs[0].plot(temperatura["Tiempo"], temperatura["Temperatura_C"], label="Original", alpha=0.6)
-axs[0].plot(temperatura["Tiempo"], temperatura["Promedio"], label="Promedio Móvil", linestyle='--', color='black')
-axs[0].set_title("Temperatura")
-axs[0].set_ylabel("°C")
-axs[0].legend(); axs[0].grid(True)
+# ----------- Funciones de procesamiento -----------
 
-axs[1].plot(humedad["Tiempo"], humedad["Humedad_Relativa_%"], label="Original", alpha=0.6)
-axs[1].plot(humedad["Tiempo"], humedad["Promedio"], label="Promedio Móvil", linestyle='--', color='black')
-axs[1].set_title("Humedad")
-axs[1].set_ylabel("% HR")
-axs[1].legend(); axs[1].grid(True)
+# Aplica un promedio móvil centrado con ventana de 3 muestras
+def promediado_movil(senal, ventana=3):
+    return senal.rolling(window=ventana, center=True).mean()
 
-axs[2].plot(viento["Tiempo"], viento["Velocidad_Viento_mps"], label="Original", alpha=0.6)
-axs[2].plot(viento["Tiempo"], viento["Promedio"], label="Promedio Móvil", linestyle='--', color='black')
-axs[2].set_title("Viento")
-axs[2].set_ylabel("m/s")
-axs[2].set_xlabel("Tiempo (s)")
-axs[2].legend(); axs[2].grid(True)
-plt.tight_layout()
-plt.show()
-
-# =======================
-# Paso 2: Filtro Pasa Bajas
-# =======================
-
-# Definimos función de filtro pasa bajas (frecuencia normalizada de 0.06)
+# Filtro pasa bajas para eliminar componentes de frecuencia alta (ruido)
 def filtro_pasa_bajas(senal, fc=0.06, orden=2):
     b, a = butter(orden, fc, btype='low')
     return filtfilt(b, a, senal)
 
-# Aplicamos el filtro a cada sensor
-temperatura["Pasa_Bajas"] = filtro_pasa_bajas(temperatura["Temperatura_C"])
-humedad["Pasa_Bajas"] = filtro_pasa_bajas(humedad["Humedad_Relativa_%"])
-viento["Pasa_Bajas"] = filtro_pasa_bajas(viento["Velocidad_Viento_mps"])
-
-# Graficamos comparativas
-fig, axs = plt.subplots(3, 1, figsize=(12, 10), sharex=True)
-axs[0].plot(temperatura["Tiempo"], temperatura["Temperatura_C"], label="Original", alpha=0.6)
-axs[0].plot(temperatura["Tiempo"], temperatura["Pasa_Bajas"], label="Pasa Bajas", linestyle='--', color='red')
-axs[0].set_title("Temperatura"); axs[0].set_ylabel("°C"); axs[0].legend(); axs[0].grid(True)
-
-axs[1].plot(humedad["Tiempo"], humedad["Humedad_Relativa_%"], label="Original", alpha=0.6)
-axs[1].plot(humedad["Tiempo"], humedad["Pasa_Bajas"], label="Pasa Bajas", linestyle='--', color='red')
-axs[1].set_title("Humedad"); axs[1].set_ylabel("% HR"); axs[1].legend(); axs[1].grid(True)
-
-axs[2].plot(viento["Tiempo"], viento["Velocidad_Viento_mps"], label="Original", alpha=0.6)
-axs[2].plot(viento["Tiempo"], viento["Pasa_Bajas"], label="Pasa Bajas", linestyle='--', color='red')
-axs[2].set_title("Viento"); axs[2].set_ylabel("m/s"); axs[2].set_xlabel("Tiempo (s)"); axs[2].legend(); axs[2].grid(True)
-plt.tight_layout()
-plt.show()
-
-# =======================
-# Paso 3: Filtro Pasa Bandas
-# =======================
-
-# Definimos función de filtro pasa bandas (mantiene solo frecuencias intermedias)
+# Filtro pasa bandas para conservar solo las frecuencias entre 0.01 y 0.09 (normalizadas)
 def filtro_pasa_bandas(senal, f_low=0.01, f_high=0.09, orden=2):
     b, a = butter(orden, [f_low, f_high], btype='band')
     return filtfilt(b, a, senal)
 
-# Aplicamos el filtro a cada señal
-temperatura["Pasa_Bandas"] = filtro_pasa_bandas(temperatura["Temperatura_C"])
-humedad["Pasa_Bandas"] = filtro_pasa_bandas(humedad["Humedad_Relativa_%"])
-viento["Pasa_Bandas"] = filtro_pasa_bandas(viento["Velocidad_Viento_mps"])
-
-# Graficamos comparativas
-fig, axs = plt.subplots(3, 1, figsize=(12, 10), sharex=True)
-axs[0].plot(temperatura["Tiempo"], temperatura["Temperatura_C"], label="Original", alpha=0.6)
-axs[0].plot(temperatura["Tiempo"], temperatura["Pasa_Bandas"], label="Pasa Bandas", linestyle=':', color='green')
-axs[0].set_title("Temperatura"); axs[0].set_ylabel("°C"); axs[0].legend(); axs[0].grid(True)
-
-axs[1].plot(humedad["Tiempo"], humedad["Humedad_Relativa_%"], label="Original", alpha=0.6)
-axs[1].plot(humedad["Tiempo"], humedad["Pasa_Bandas"], label="Pasa Bandas", linestyle=':', color='green')
-axs[1].set_title("Humedad"); axs[1].set_ylabel("% HR"); axs[1].legend(); axs[1].grid(True)
-
-axs[2].plot(viento["Tiempo"], viento["Velocidad_Viento_mps"], label="Original", alpha=0.6)
-axs[2].plot(viento["Tiempo"], viento["Pasa_Bandas"], label="Pasa Bandas", linestyle=':', color='green')
-axs[2].set_title("Viento"); axs[2].set_ylabel("m/s"); axs[2].set_xlabel("Tiempo (s)"); axs[2].legend(); axs[2].grid(True)
-plt.tight_layout()
-plt.show()
-
-# =======================
-# Paso 4: Análisis de Frecuencia (FFT)
-# =======================
-
-# Función para calcular el espectro de frecuencia
-def calcular_fft(senal, fs):
+# Cálculo del espectro de frecuencias usando FFT (solo la mitad positiva)
+def calcular_fft(senal):
     N = len(senal)
     fft_vals = fft(senal)
     magnitud = np.abs(fft_vals) / N
     frecs = fftfreq(N, d=1/fs)
     return frecs[:N//2], magnitud[:N//2]
 
-# Función para graficar la comparativa de espectros
-def graficar_fft_comparativa(df, columna, nombre, ax):
+# ----------- Función principal de procesamiento y graficación -----------
+
+def procesar_sensor(df, columna, nombre_sensor, unidad):
+    tiempo = df["Tiempo"]
     original = df[columna]
-    lp = df["Pasa_Bajas"]
-    bp = df["Pasa_Bandas"]
 
-    f1, m1 = calcular_fft(original, fs)
-    f2, m2 = calcular_fft(lp, fs)
-    f3, m3 = calcular_fft(bp, fs)
+    # Procesamiento: promediado y filtros
+    prom = promediado_movil(original)
+    lp = filtro_pasa_bajas(original)
+    bp = filtro_pasa_bandas(original)
 
-    ax.plot(f1, m1, label="Original", alpha=0.6)
-    ax.plot(f2, m2, label="Pasa Bajas", linestyle='--', color='red')
-    ax.plot(f3, m3, label="Pasa Bandas", linestyle=':', color='green')
-    ax.set_title(nombre); ax.set_ylabel("Magnitud"); ax.legend(); ax.grid(True)
+    # Espectros de frecuencia (FFT) de cada una
+    f1, m1 = calcular_fft(original)
+    f2, m2 = calcular_fft(lp)
+    f3, m3 = calcular_fft(bp)
 
-# Creamos la figura final con FFT de los tres sensores
-fig, axs = plt.subplots(3, 1, figsize=(12, 10), sharex=True)
-graficar_fft_comparativa(temperatura, "Temperatura_C", "Temperatura", axs[0])
-graficar_fft_comparativa(humedad, "Humedad_Relativa_%", "Humedad", axs[1])
-graficar_fft_comparativa(viento, "Velocidad_Viento_mps", "Viento", axs[2])
-axs[2].set_xlabel("Frecuencia (Hz)")
-plt.tight_layout()
-plt.show()
+    # Crear figura: comparación en el tiempo y frecuencia
+    fig, axs = plt.subplots(2, 1, figsize=(12, 8))
+
+    # --- Señal en el tiempo ---
+    axs[0].plot(tiempo, original, label="Original", color='blue', alpha=0.6)
+    axs[0].plot(tiempo, prom, label="Promediado Móvil", color='black', linestyle='--')
+    axs[0].plot(tiempo, lp, label="Filtro Pasa Bajas", color='red', linestyle='--')
+    axs[0].plot(tiempo, bp, label="Filtro Pasa Bandas", color='green', linestyle=':')
+    axs[0].set_title(f"{nombre_sensor} - Comparación de Señales en el Tiempo")
+    axs[0].set_xlabel("Tiempo (s)")
+    axs[0].set_ylabel(unidad)
+    axs[0].legend()
+    axs[0].grid(True)
+
+    # --- Espectro de frecuencia ---
+    axs[1].plot(f1, m1, label="FFT Original", color='blue', alpha=0.6)
+    axs[1].plot(f2, m2, label="FFT Pasa Bajas", color='red', linestyle='--')
+    axs[1].plot(f3, m3, label="FFT Pasa Bandas", color='green', linestyle=':')
+    axs[1].set_title(f"{nombre_sensor} - Espectro de Frecuencia")
+    axs[1].set_xlabel("Frecuencia (Hz)")
+    axs[1].set_ylabel("Magnitud")
+    axs[1].legend()
+    axs[1].grid(True)
+
+    # Ajuste para que no se encimen los elementos
+    plt.tight_layout()
+    plt.show()
+
+# ----------- Ejecutar análisis para cada sensor -----------
+
+procesar_sensor(temp, "Temperatura_C", "Temperatura", "°C")
+procesar_sensor(hum, "Humedad_Relativa_%", "Humedad", "% HR")
+procesar_sensor(vien, "Velocidad_Viento_mps", "Viento", "m/s")
