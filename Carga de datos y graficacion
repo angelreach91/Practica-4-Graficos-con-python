@@ -1,0 +1,48 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Ruta base a tus archivos
+ruta = r"C:\Users\Angel\Downloads"
+
+# Cargar los archivos CSV
+temperatura = pd.read_csv(ruta + r"\temperatura.csv")
+humedad = pd.read_csv(ruta + r"\humedad.csv")
+viento = pd.read_csv(ruta + r"\viento.csv")
+
+# Definir parámetros de muestreo
+intervalo_muestreo = 5  # segundos por muestra
+frecuencia_muestreo = 1 / intervalo_muestreo  # 0.2 Hz
+
+# Agregar columna de tiempo en segundos
+temperatura["Tiempo"] = temperatura.index * intervalo_muestreo
+humedad["Tiempo"] = humedad.index * intervalo_muestreo
+viento["Tiempo"] = viento.index * intervalo_muestreo
+
+# --- Gráficas de señales originales ---
+plt.figure(figsize=(12, 8))
+
+# Temperatura
+plt.subplot(3, 1, 1)
+plt.plot(temperatura["Tiempo"], temperatura["Temperatura_C"], label="Temperatura")
+plt.title("Sensor de Temperatura - Señal Original")
+plt.ylabel("°C")
+plt.grid(True)
+
+# Humedad
+plt.subplot(3, 1, 2)
+plt.plot(humedad["Tiempo"], humedad["Humedad_Relativa_%"], label="Humedad", color='orange')
+plt.title("Sensor de Humedad - Señal Original")
+plt.ylabel("% HR")
+plt.grid(True)
+
+# Viento
+plt.subplot(3, 1, 3)
+plt.plot(viento["Tiempo"], viento["Velocidad_Viento_mps"], label="Viento", color='green')
+plt.title("Sensor de Viento - Señal Original")
+plt.xlabel("Tiempo (s)")
+plt.ylabel("m/s")
+plt.grid(True)
+
+plt.tight_layout()
+plt.show()
